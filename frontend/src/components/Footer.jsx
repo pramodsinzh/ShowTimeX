@@ -6,7 +6,7 @@ const Footer = () => {
     <footer className="px-6 mt-14 md:px-16 lg:px-36 w-full text-gray-300">
       <div className="flex flex-col md:flex-row justify-between w-full gap-10 border-b border-gray-500 pb-14">
         <div className="md:max-w-96">
-          <img alt="" class="w-36 h-auto" src= {assets.logo} />
+          <img alt="" className="w-36 h-auto" src= {assets.logo} />
           <p className="mt-6 text-sm">
             ShowTimeX is a platform for booking movie tickets online. It allows users to book tickets for movies playing in their area.
           </p>
