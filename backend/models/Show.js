@@ -8,5 +8,5 @@ const showSchema = new mongoose.Schema({
     occupiedSeats: {type: Object, default: {}},
 }, {minimize: false})
 
-const Show = mongoose.Model("Show", showSchema)
+const Show = mongoose.model("Show", showSchema)
 export default Show;
