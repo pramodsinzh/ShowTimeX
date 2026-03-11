@@ -20,7 +20,7 @@ const ListShows = () => {
       setShows(data.shows)
       setLoading(false)
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
   useEffect(() => {
