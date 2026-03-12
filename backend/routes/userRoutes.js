@@ -4,7 +4,7 @@ import { getFavorites, getUsersBookings, updateFavorite } from "../controllers/u
 const userRouter = e.Router()
 
 userRouter.get('/bookings', getUsersBookings)
-userRouter.get('/update-favorite', updateFavorite)
+userRouter.post('/update-favorite', updateFavorite)
 userRouter.get('/favorites', getFavorites)
 
 export default userRouter;
