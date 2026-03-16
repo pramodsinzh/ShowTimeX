@@ -53,24 +53,33 @@ const releaseSeatsandDeleteBooking = inngest.createFunction(
     { id: 'release-seats-delete-booking' },
     { event: 'app/checkpayment' },
     async ({ event, step }) => {
+        const bookingId = event.data.bookingId;
+
+        // If payment is already completed when this function starts, exit early.
+        const existingBooking = await Booking.findById(bookingId);
+        if (!existingBooking || existingBooking.isPaid) {
+            return;
+        }
+
         const tenMinutesLater = new Date(Date.now() + 10 * 60 * 1000);
-        await step.sleepUntil('wait-for-10-minutes', tenMinutesLater)
+        await step.sleepUntil('wait-for-10-minutes', tenMinutesLater);
 
         await step.run('check-payment-status', async () => {
-            const bookingId = event.data.bookingId;
-            const booking = await Booking.findById(bookingId)
+            const booking = await Booking.findById(bookingId);
 
-            //if payment is not made, release seats and delete booking
-            if (!booking.isPaid) {
-                const show = await Show.findById(booking.show)
-                booking.bookedSeats.forEach((seat) => {
-                    delete show.occupiedSeats[seat]
-                })
-                show.markModified('occupiedSeats')
-                await show.save()
-                await Booking.findByIdAndDelete(booking._id)
+            // If booking is missing or already paid by the time we check, do nothing.
+            if (!booking || booking.isPaid) {
+                return;
             }
-        })
+
+            const show = await Show.findById(booking.show);
+            booking.bookedSeats.forEach((seat) => {
+                delete show.occupiedSeats[seat];
+            });
+            show.markModified('occupiedSeats');
+            await show.save();
+            await Booking.findByIdAndDelete(booking._id);
+        });
     }
 )
 
@@ -86,10 +95,16 @@ const sendBookingConfirmationEmail = inngest.createFunction(
             populate: { path: "movie", model: "Movie" }
         }).populate("user");
 
-        await sendEmail({
-            to: booking.user.email,
-            subject: `Payment Confirmation: "${booking.show.movie.title}" booked!`,
-            body: `
+        if (!booking) {
+            console.log('send-booking-confirmation-email: booking not found', { bookingId });
+            return;
+        }
+
+        await step.run('send-booking-confirmation-email', async () => {
+            await sendEmail({
+                to: booking.user.email,
+                subject: `Payment Confirmation: "${booking.show.movie.title}" booked!`,
+                body: `
                 <div style="font-family: Arial, sans-serif; background: #fafbfc; padding: 32px 0;">
                   <div style="max-width: 480px; margin: auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(20,30,40,0.08); padding: 32px;">
                     <div style="text-align:center;">
@@ -113,7 +128,8 @@ const sendBookingConfirmationEmail = inngest.createFunction(
                   </div>
                 </div>
             `
-        })
+            })
+        });
     }
 )
 
