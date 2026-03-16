@@ -105,27 +105,16 @@ const sendBookingConfirmationEmail = inngest.createFunction(
                 to: booking.user.email,
                 subject: `Payment Confirmation: "${booking.show.movie.title}" booked!`,
                 body: `
-                <div style="font-family: Arial, sans-serif; background: #fafbfc; padding: 32px 0;">
-                  <div style="max-width: 480px; margin: auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(20,30,40,0.08); padding: 32px;">
-                    <div style="text-align:center;">
-                      <h2 style="color: #262626; margin-bottom: 16px; font-size: 28px;">Booking Confirmed 🎉</h2>
-                      <p style="color: #444; margin: 0 0 24px; font-size: 18px;"><b>${booking.user.name || booking.user.email}</b>, thank you for booking!</p>
-                    </div>
-                    <div style="background: #f4f7fb; border-radius: 8px; padding: 18px 20px; margin-bottom: 22px;">
-                      <h3 style="margin: 0 0 10px; color: #334;">${booking.show.movie.title}</h3>
-                      <p style="margin: 0; color: #666;">Show Time: <b>${new Date(booking.show.showDateTime).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true })}</b></p>
-                      <p style="margin: 4px 0 0; color: #666;">Seats: <b>${booking.bookedSeats.join(', ')}</b></p>
-                    </div>
-                    <p style="margin: 28px 0 0; color: #7c7c7c; font-size: 15px;">
-                      Please arrive 10 minutes before the show. <br/>
-                      Enjoy your movie!
-                    </p>
-                    <hr style="margin: 28px 0; border: none; border-top: 1px solid #eee;" />
-                    <p style="text-align:center; margin: 0; color: #b0b0b0; font-size: 13px;">
-                      This is an automated confirmation for your records.<br/>
-                      &copy; ${new Date().getFullYear()} ShowtimeX
-                    </p>
-                  </div>
+                <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+                  <h2>Hi ${booking.user.name || booking.user.email},</h2>
+                  <p>Your booking for <strong style="color: #F84565;">${booking.show.movie.title}</strong> is confirmed.</p>
+                  <p>
+                    <strong>Date:</strong> ${new Date(booking.show.showDateTime).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}<br/>
+                    <strong>Time:</strong> ${new Date(booking.show.showDateTime).toLocaleTimeString('en-US', { timeZone: 'Asia/Kathmandu' })}
+                  </p>
+                  <p>Please arrive 10 minutes before the show.</p>
+                  <p>Enjoy the show!</p>
+                  <p>Thanks for booking with us!<br/> ShowTimeX Team</p>
                 </div>
             `
             })
