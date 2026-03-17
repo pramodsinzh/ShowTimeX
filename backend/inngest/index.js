@@ -145,7 +145,7 @@ const sendShowReminders = inngest.createFunction(
                 const userIds = [...new Set(Object.values(show.occupiedSeats))]
                 if (userIds.length === 0) continue;
 
-                const user = await User.find({ _id: { $in: userIds } }).select("name email")
+                const users = await User.find({ _id: { $in: userIds } }).select("name email")
 
                 for (const user of users) {
                     tasks.push({
@@ -199,21 +199,35 @@ const sendShowReminders = inngest.createFunction(
 const sendNewShowNotifications = inngest.createFunction(
     { id: 'send-new-show-notifications' },
     { event: 'app/show.added' },
-    async ({ event }) => {
+    async ({ event, step }) => {
         const { movieTitle } = event.data;
 
-        const users = await User.find({})
+        const users = await step.run('load-users-for-notification', async () => {
+            return await User.find({ email: { $exists: true, $ne: "" } }).select("name email");
+        });
 
-        for (const user of users) {
-            const userEmail = user.email;
-            const userName = user.name;
+        const tasks = users
+            .filter(u => !!u.email)
+            .map(u => ({
+                userEmail: u.email,
+                userName: u.name,
+            }));
 
-            const subject = `🎬 New Show Added: ${movieTitle}`
-            const body = `
+        if (tasks.length === 0) {
+            return { sent: 0, failed: 0, skipped: 0, message: "No users with email found; nothing to notify." };
+        }
+
+        const results = await step.run('send-new-show-emails', async () => {
+            return await Promise.allSettled(
+                tasks.map(task =>
+                    sendEmail({
+                        to: task.userEmail,
+                        subject: `🎬 New Show Added: ${movieTitle}`,
+                        body: `
                 <div style="font-family: sans-serif; max-width: 400px; margin: auto; background: #f7f7f7; padding: 32px 24px; border-radius: 12px; box-shadow: 0 2px 8px #0001;">
                     <h2 style="color: #23272F; margin-top: 0;">A New Show Has Been Added!</h2>
                     <p style="margin: 16px 0; font-size: 16px; color: #282828;">
-                        Hello${userName ? ` ${userName}` : ''},
+                        Hello${task.userName ? ` ${task.userName}` : ''},
                     </p>
                     <p style="margin: 12px 0 24px; font-size: 16px; color: #323232;">
                         We're excited to let you know that <strong>${movieTitle}</strong> has just been added to our listings.
@@ -222,14 +236,16 @@ const sendNewShowNotifications = inngest.createFunction(
                         Book your seat now and enjoy the show!
                     </p>
                 </div>
-            `;
-            await sendEmail({
-                to: userEmail,
-                subject,
-                body
-            })
-        }
-        return {message: "Notifications sent."}
+            `,
+                    })
+                )
+            );
+        });
+
+        const sent = results.filter(r => r.status === 'fulfilled').length;
+        const failed = results.length - sent;
+
+        return { sent, failed, message: `New show notifications: ${sent} sent, ${failed} failed.` };
     }
 )
 
