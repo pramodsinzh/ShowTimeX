@@ -17,6 +17,8 @@ import ListBookings from './pages/admin/ListBookings'
 import { useAppContext } from './context/AppContext'
 import { SignIn } from '@clerk/clerk-react'
 import Loading from './components/Loading'
+import Release from './pages/Release'
+import Theater from './pages/Theater'
 
 const App = () => {
   const isAdminRoute = useLocation().pathname.startsWith('/admin')
@@ -28,6 +30,8 @@ const App = () => {
       <Routes>
         <Route path='/' element={<Home />} />
         <Route path='/movies' element={<Movies />} />
+        <Route path='/theaters' element={<Theater />} />
+        <Route path='/releases' element={<Release />} />
         <Route path='/movies/:id' element={<MovieDetails />} />
         <Route path='/movies/:id/:date' element={<SeatLayout />} />
         <Route path='/my-bookings' element={<MyBookings />} />
