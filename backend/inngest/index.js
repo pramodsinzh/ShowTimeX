@@ -125,7 +125,7 @@ const sendBookingConfirmationEmail = inngest.createFunction(
 //Inngest function to send reminder email to the user 8 hrs before the show starts
 const sendShowReminders = inngest.createFunction(
     { id: 'send-show-reminders' },
-    { cron: '0 * /8 * * *' }, //run every 8 hours
+    { cron: '0 */8 * * *' }, //run every 8 hours
     async ({ step }) => {
         const now = new Date();
         const in8hours = new Date(now.getTime() + 8 * 60 * 60 * 1000);
