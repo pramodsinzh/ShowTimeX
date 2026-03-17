@@ -158,12 +158,12 @@ const sendShowReminders = inngest.createFunction(
             }
             return tasks;
         })
-        if(reminderTasks.length === 0){
-            return {sent: 0, message: "No remianders to send!"}
+        if (reminderTasks.length === 0) {
+            return { sent: 0, message: "No remianders to send!" }
         }
 
         //send reminder emails
-        const results = await step.run('send-all-reminders', async()=>{
+        const results = await step.run('send-all-reminders', async () => {
             return await Promise.allSettled(
                 reminderTasks.map(task => sendEmail({
                     to: task.userEmail,
@@ -195,4 +195,42 @@ const sendShowReminders = inngest.createFunction(
     }
 )
 
-export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdate, releaseSeatsandDeleteBooking, sendBookingConfirmationEmail, sendShowReminders];
+//function to send notification when a new show is added 
+const sendNewShowNotifications = inngest.createFunction(
+    { id: 'send-new-show-notifications' },
+    { event: 'app/show.added' },
+    async ({ event }) => {
+        const { movieTitle } = event.data;
+
+        const users = await User.find({})
+
+        for (const user of users) {
+            const userEmail = user.email;
+            const userName = user.name;
+
+            const subject = `🎬 New Show Added: ${movieTitle}`
+            const body = `
+                <div style="font-family: sans-serif; max-width: 400px; margin: auto; background: #f7f7f7; padding: 32px 24px; border-radius: 12px; box-shadow: 0 2px 8px #0001;">
+                    <h2 style="color: #23272F; margin-top: 0;">A New Show Has Been Added!</h2>
+                    <p style="margin: 16px 0; font-size: 16px; color: #282828;">
+                        Hello${userName ? ` ${userName}` : ''},
+                    </p>
+                    <p style="margin: 12px 0 24px; font-size: 16px; color: #323232;">
+                        We're excited to let you know that <strong>${movieTitle}</strong> has just been added to our listings.
+                    </p>
+                    <p style="color: #878ea3; font-size: 14px; margin-bottom:0;">
+                        Book your seat now and enjoy the show!
+                    </p>
+                </div>
+            `;
+            await sendEmail({
+                to: userEmail,
+                subject,
+                body
+            })
+        }
+        return {message: "Notifications sent."}
+    }
+)
+
+export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdate, releaseSeatsandDeleteBooking, sendBookingConfirmationEmail, sendShowReminders, sendNewShowNotifications];
