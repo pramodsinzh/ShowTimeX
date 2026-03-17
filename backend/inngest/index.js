@@ -122,4 +122,77 @@ const sendBookingConfirmationEmail = inngest.createFunction(
     }
 )
 
-export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdate, releaseSeatsandDeleteBooking, sendBookingConfirmationEmail];
+//Inngest function to send reminder email to the user 8 hrs before the show starts
+const sendShowReminders = inngest.createFunction(
+    { id: 'send-show-reminders' },
+    { cron: '0 * /8 * * *' }, //run every 8 hours
+    async ({ step }) => {
+        const now = new Date();
+        const in8hours = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+        const windowStart = new Date(in8hours.getTime() - 10 * 60 * 1000);
+
+        //prepare reminder tasks
+        const reminderTasks = await step.run('prepare-reminder-tasks', async () => {
+            const shows = await Show.find({
+                showTime: { $gte: windowStart, $lte: in8hours },
+            }).populate('movie')
+
+            const tasks = []
+
+            for (const show of shows) {
+                if (!show.movie || !show.occupiedSeats) continue;
+
+                const userIds = [...new Set(Object.values(show.occupiedSeats))]
+                if (userIds.length === 0) continue;
+
+                const user = await User.find({ _id: { $in: userIds } }).select("name email")
+
+                for (const user of users) {
+                    tasks.push({
+                        userEmail: user.email,
+                        userName: user.name,
+                        movieTitle: show.movie.title,
+                        showTime: show.showTime
+                    })
+                }
+            }
+            return tasks;
+        })
+        if(reminderTasks.length === 0){
+            return {sent: 0, message: "No remianders to send!"}
+        }
+
+        //send reminder emails
+        const results = await step.run('send-all-reminders', async()=>{
+            return await Promise.allSettled(
+                reminderTasks.map(task => sendEmail({
+                    to: task.userEmail,
+                    subject: `🎬 Movie Reminder: "${task.movieTitle}" starts soon!`,
+                    body: `
+                        <div style="font-family: sans-serif; max-width: 400px; margin: auto; background: #f7f7f7; padding: 32px 24px; border-radius: 12px; box-shadow: 0 2px 8px #0001;">
+                            <h2 style="color: #23272F; margin-top: 0;">Your Movie Night Awaits!</h2>
+                            <p style="margin: 16px 0; font-size: 16px; color: #282828;">
+                                Hi ${task.userName || ''},
+                            </p>
+                            <p style="margin: 12px 0 24px; font-size: 16px; color: #323232;">
+                                This is a friendly reminder that <strong>${task.movieTitle}</strong> starts at <strong>${new Date(task.showTime).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</strong>.
+                            </p>
+                            <p style="color: #878ea3; font-size: 14px; margin-bottom:0;">
+                                Enjoy your show!
+                            </p>
+                        </div>
+                    `
+                }))
+            )
+        })
+
+        const sent = results.filter(r => r.status === 'fulfilled').length;
+        const failed = results.length - sent;
+
+        return {
+            sent, failed, message: `Sent ${sent} reminder(s), ${failed} failed!`
+        }
+    }
+)
+
+export const functions = [syncUserCreation, syncUserDeletion, syncUserUpdate, releaseSeatsandDeleteBooking, sendBookingConfirmationEmail, sendShowReminders];
