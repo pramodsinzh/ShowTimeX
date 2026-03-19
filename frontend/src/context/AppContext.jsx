@@ -73,7 +73,7 @@ export const AppProvider = ({ children }) => {
         }
     }, [user])
 
-    const value = { axios, fetchIsAdmin, user, getToken, navigate, isAdmin, shows, favoriteMovies, fetchFavoriteMovies, image_base_url }
+    const value = { axios, fetchIsAdmin, user, getToken, navigate, isAdmin, shows, favoriteMovies, fetchFavoriteMovies, image_base_url, fetchShows }
     return (
         <AppContext.Provider value={value}>
             {children}

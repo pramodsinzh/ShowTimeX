@@ -8,7 +8,7 @@ import { useAppContext } from '../../context/AppContext'
 import toast from 'react-hot-toast'
 
 const AddShows = () => {
-  const { axios, getToken, user, image_base_url } = useAppContext()
+  const { axios, getToken, user, image_base_url, fetchShows } = useAppContext()
   const currency = import.meta.env.VITE_CURRENCY
   const [nowPlayingMovies, setNowPlayingMovies] = useState([])
   const [selectedMovie, setSelectedMovie] = useState(null)
@@ -76,6 +76,8 @@ const AddShows = () => {
       })
       if(data.success){
         toast.success(data.message)
+        // Refresh global shows so Movies page updates without full reload
+        await fetchShows()
         setSelectedMovie(null)
         setDateTimeSelection({})
         setShowPrice("")
